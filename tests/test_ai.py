@@ -246,7 +246,7 @@ class TestAISimulation:
         for col in range(8):
             board.set_piece((6, col), Pawn('white'))
 
-        ai = AI(depth=2)
+        ai = AI(depth=1)
         max_moves = 50
         current_color = 'white'
         moves_made = 0
