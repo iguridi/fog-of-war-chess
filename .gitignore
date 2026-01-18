@@ -1,3 +1,13 @@
 .venv
 .pytest_cache
 .claude
+__pycache__
+
+# Python
+*.pyc
+*.log
+*.sqlite3
+.env
+
+# macOS
+.DS_Store
