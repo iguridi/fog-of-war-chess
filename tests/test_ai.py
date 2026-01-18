@@ -137,6 +137,86 @@ class TestAIWithAllPieces:
         assert move is not None
 
 
+class TestSmartAI:
+    """Tests for the minimax-based smart AI."""
+
+    def test_ai_captures_undefended_piece(self):
+        """AI should capture a free piece."""
+        board = Board()
+        # Black queen can capture undefended white rook
+        board.set_piece((4, 4), Queen('black'))
+        board.set_piece((4, 7), Rook('white'))  # Undefended rook
+        board.set_piece((0, 0), King('black'))
+        board.set_piece((7, 0), King('white'))  # King safe from queen
+
+        ai = AI()
+        move = ai.get_move(board, 'black')
+
+        assert move is not None
+        _, to_pos, _ = move
+        # AI should capture the free rook
+        assert to_pos == (4, 7)
+
+    def test_ai_prefers_higher_value_capture(self):
+        """AI should capture queen over pawn when both available."""
+        board = Board()
+        # Black rook can capture white queen or white pawn
+        board.set_piece((4, 4), Rook('black'))
+        board.set_piece((4, 0), Pawn('white'))   # Low value target
+        board.set_piece((4, 7), Queen('white'))  # High value target
+        board.set_piece((0, 0), King('black'))
+        board.set_piece((7, 0), King('white'))
+
+        ai = AI()
+        move = ai.get_move(board, 'black')
+
+        assert move is not None
+        _, to_pos, _ = move
+        # AI should capture the queen (higher value)
+        assert to_pos == (4, 7)
+
+    def test_ai_uses_depth_parameter(self):
+        """AI should accept depth parameter."""
+        ai_shallow = AI(depth=1)
+        ai_deep = AI(depth=3)
+
+        assert ai_shallow.depth == 1
+        assert ai_deep.depth == 3
+
+    def test_ai_evaluation_considers_material(self):
+        """Board evaluation should favor material advantage."""
+        board = Board()
+        board.set_piece((0, 0), King('black'))
+        board.set_piece((0, 1), Queen('black'))  # Black has queen
+        board.set_piece((7, 7), King('white'))
+        # White has no queen - black should have positive score
+
+        ai = AI()
+        score = ai._evaluate_board(board, 'black')
+
+        # Black has material advantage (queen), so score should be positive
+        assert score > 0
+
+    def test_ai_respects_fog_in_evaluation(self):
+        """AI evaluation should only consider visible enemy pieces."""
+        board = Board()
+        # Black king in corner - limited visibility
+        board.set_piece((0, 0), King('black'))
+        # White pieces far away (not visible to black)
+        board.set_piece((7, 7), King('white'))
+        board.set_piece((7, 6), Queen('white'))  # Queen hidden from black
+
+        visible = board.get_visible_squares('black')
+
+        # White queen should not be visible to black king
+        assert (7, 6) not in visible
+
+        # AI should still work despite hidden pieces
+        ai = AI()
+        move = ai.get_move(board, 'black')
+        assert move is not None
+
+
 class TestAISimulation:
     def test_ai_vs_ai_game_completes(self):
         """Test that a full AI vs AI game terminates."""
