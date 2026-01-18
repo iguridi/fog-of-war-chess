@@ -1,0 +1,315 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    color: #fff;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    letter-spacing: 4px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    color: #e0e0e0;
+}
+
+.subtitle {
+    color: #888;
+    margin-top: 10px;
+    font-size: 1.1rem;
+}
+
+main {
+    display: flex;
+    justify-content: center;
+}
+
+.game-area {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.board-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.board-labels {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    padding: 5px 0;
+}
+
+.board-labels.top,
+.board-labels.bottom {
+    width: var(--board-size, 300px);
+    margin-left: 25px;
+}
+
+.board-labels span {
+    width: calc(var(--board-size, 300px) / 3);
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+}
+
+.board-with-ranks {
+    display: flex;
+    align-items: center;
+}
+
+.board-labels.left,
+.board-labels.right {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: var(--board-size, 300px);
+    padding: 0 5px;
+}
+
+.board-labels.left span,
+.board-labels.right span {
+    height: calc(var(--board-size, 300px) / 3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #888;
+}
+
+.board {
+    --board-size: 300px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    width: var(--board-size);
+    height: var(--board-size);
+    border: 3px solid #444;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.square {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.15s ease;
+}
+
+.square.light {
+    background-color: #f0d9b5;
+}
+
+.square.dark {
+    background-color: #b58863;
+}
+
+.square.fog {
+    background: repeating-linear-gradient(
+        45deg,
+        #2a2a3a,
+        #2a2a3a 10px,
+        #222233 10px,
+        #222233 20px
+    );
+    position: relative;
+}
+
+.square.fog::after {
+    content: '?';
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.15);
+    font-weight: bold;
+}
+
+.square.selected {
+    background-color: #7fbc7f !important;
+    box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.square.valid-move::before {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(255, 255, 0, 0.6);
+    border-radius: 50%;
+}
+
+.square.valid-capture {
+    box-shadow: inset 0 0 0 5px rgba(255, 0, 0, 0.7);
+}
+
+.square.last-move {
+    background-color: rgba(155, 199, 0, 0.5) !important;
+}
+
+.square .piece {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    user-select: none;
+    z-index: 1;
+}
+
+.square .piece.white {
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.square .piece.black {
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
+}
+
+.game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 180px;
+}
+
+.turn-indicator {
+    background: #2a2a4a;
+    padding: 15px 25px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.turn-indicator.white-turn {
+    background: linear-gradient(135deg, #f0d9b5 0%, #d4b896 100%);
+    color: #333;
+}
+
+.turn-indicator.black-turn {
+    background: linear-gradient(135deg, #4a4a5a 0%, #333344 100%);
+    color: #fff;
+}
+
+.turn-indicator.game-over {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.turn-indicator.you-win {
+    background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%);
+}
+
+.btn {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.last-move {
+    background: #2a2a4a;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #aaa;
+    min-height: 40px;
+}
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3a 100%);
+    padding: 40px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h2 {
+    margin-bottom: 30px;
+    font-size: 2rem;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+    .board {
+        --board-size: min(85vw, 280px);
+    }
+
+    .board-labels.top,
+    .board-labels.bottom {
+        width: var(--board-size, 280px);
+    }
+
+    .board-labels.left,
+    .board-labels.right {
+        height: var(--board-size, 280px);
+    }
+
+    .square {
+        font-size: 48px;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .game-area {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .game-info {
+        width: 100%;
+        max-width: 300px;
+    }
+}

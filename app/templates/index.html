@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fog of War Chess</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>FOG OF WAR CHESS</h1>
+            <p class="subtitle">3x3 Edition - Capture the enemy king!</p>
+        </header>
+
+        <main>
+            <div class="game-area">
+                <div class="board-container">
+                    <div class="board-labels top">
+                        <span>a</span><span>b</span><span>c</span>
+                    </div>
+                    <div class="board-with-ranks">
+                        <div class="board-labels left">
+                            <span>3</span><span>2</span><span>1</span>
+                        </div>
+                        <div id="board" class="board"></div>
+                        <div class="board-labels right">
+                            <span>3</span><span>2</span><span>1</span>
+                        </div>
+                    </div>
+                    <div class="board-labels bottom">
+                        <span>a</span><span>b</span><span>c</span>
+                    </div>
+                </div>
+
+                <div class="game-info">
+                    <div id="turn-indicator" class="turn-indicator">Your Turn</div>
+                    <button id="new-game-btn" class="btn">New Game</button>
+                    <div id="last-move" class="last-move"></div>
+                </div>
+            </div>
+        </main>
+
+        <div id="game-over-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="game-over-message"></h2>
+                <button id="play-again-btn" class="btn">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='game.js') }}"></script>
+</body>
+</html>
