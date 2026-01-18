@@ -1,6 +1,6 @@
 """Core game logic for Fog-of-War chess game."""
 from app.board import Board
-from app.pieces import King, Pawn
+from app.pieces import King, Queen, Rook, Bishop, Knight, Pawn
 from app.ai import AI
 
 
@@ -18,16 +18,30 @@ class Game:
         self._setup_initial_position()
 
     def _setup_initial_position(self):
-        """Set up the starting position: kings on back ranks, pawns on rows 2 & 7."""
-        # White pieces (bottom)
-        self.board.set_piece((7, 4), King('white'))  # King on e1
+        """Set up the standard chess starting position."""
+        # White pieces (bottom, row 7 = rank 1)
+        self.board.set_piece((7, 0), Rook('white'))    # a1
+        self.board.set_piece((7, 1), Knight('white'))  # b1
+        self.board.set_piece((7, 2), Bishop('white'))  # c1
+        self.board.set_piece((7, 3), Queen('white'))   # d1
+        self.board.set_piece((7, 4), King('white'))    # e1
+        self.board.set_piece((7, 5), Bishop('white'))  # f1
+        self.board.set_piece((7, 6), Knight('white'))  # g1
+        self.board.set_piece((7, 7), Rook('white'))    # h1
         for col in range(8):
-            self.board.set_piece((6, col), Pawn('white'))  # Pawns on row 2
+            self.board.set_piece((6, col), Pawn('white'))  # Pawns on rank 2
 
-        # Black pieces (top)
-        self.board.set_piece((0, 4), King('black'))  # King on e8
+        # Black pieces (top, row 0 = rank 8)
+        self.board.set_piece((0, 0), Rook('black'))    # a8
+        self.board.set_piece((0, 1), Knight('black'))  # b8
+        self.board.set_piece((0, 2), Bishop('black'))  # c8
+        self.board.set_piece((0, 3), Queen('black'))   # d8
+        self.board.set_piece((0, 4), King('black'))    # e8
+        self.board.set_piece((0, 5), Bishop('black'))  # f8
+        self.board.set_piece((0, 6), Knight('black'))  # g8
+        self.board.set_piece((0, 7), Rook('black'))    # h8
         for col in range(8):
-            self.board.set_piece((1, col), Pawn('black'))  # Pawns on row 7
+            self.board.set_piece((1, col), Pawn('black'))  # Pawns on rank 7
 
     def get_visible_state(self):
         """Get the game state with fog-of-war applied for white player."""

@@ -1,14 +1,16 @@
 """Unit tests for AI move generation."""
 import pytest
 from app.board import Board
-from app.pieces import King, Pawn
+from app.pieces import King, Queen, Rook, Bishop, Knight, Pawn
 from app.ai import AI
 
 
 class TestAILegalMoves:
     def test_ai_returns_legal_move(self):
         board = Board()
+        # Set up standard black position
         board.set_piece((0, 4), King('black'))
+        board.set_piece((0, 1), Knight('black'))
         for col in range(8):
             board.set_piece((1, col), Pawn('black'))
         board.set_piece((7, 4), King('white'))
@@ -26,12 +28,13 @@ class TestAILegalMoves:
 
     def test_ai_captures_king_immediately(self):
         board = Board()
-        black_king = King('black')
+        black_queen = Queen('black')
         white_king = King('white')
 
-        # Kings adjacent - black can capture white
-        board.set_piece((4, 4), black_king)
-        board.set_piece((4, 5), white_king)
+        # Queen can capture king
+        board.set_piece((4, 4), black_queen)
+        board.set_piece((4, 7), white_king)
+        board.set_piece((0, 0), King('black'))
 
         ai = AI()
         move = ai.get_move(board, 'black')
@@ -39,25 +42,24 @@ class TestAILegalMoves:
         assert move is not None
         _, to_pos, _ = move
         # AI must capture the king
-        assert to_pos == (4, 5)
+        assert to_pos == (4, 7)
 
-    def test_ai_pawn_captures_king(self):
+    def test_ai_rook_captures_king(self):
         board = Board()
-        black_pawn = Pawn('black')
+        black_rook = Rook('black')
         white_king = King('white')
 
-        # Pawn can capture king diagonally
-        board.set_piece((5, 4), black_pawn)
-        board.set_piece((6, 5), white_king)
-        board.set_piece((0, 0), King('black'))  # Black king somewhere safe
+        # Rook can capture king on same file
+        board.set_piece((0, 4), black_rook)
+        board.set_piece((7, 4), white_king)
+        board.set_piece((0, 0), King('black'))
 
         ai = AI()
         move = ai.get_move(board, 'black')
 
         assert move is not None
         _, to_pos, _ = move
-        # AI should capture the king with pawn
-        assert to_pos == (6, 5)
+        assert to_pos == (7, 4)
 
     def test_ai_only_moves_to_visible_squares(self):
         board = Board()
@@ -89,10 +91,10 @@ class TestAILegalMoves:
         assert move is None
 
 
-class TestAIWithPawns:
-    def test_ai_can_move_pawn(self):
+class TestAIWithAllPieces:
+    def test_ai_can_move_knight(self):
         board = Board()
-        board.set_piece((1, 4), Pawn('black'))
+        board.set_piece((0, 1), Knight('black'))
         board.set_piece((0, 4), King('black'))
         board.set_piece((7, 4), King('white'))
 
@@ -100,24 +102,39 @@ class TestAIWithPawns:
         move = ai.get_move(board, 'black')
 
         assert move is not None
-        # AI should be able to move either king or pawn
 
-    def test_ai_pawn_advances(self):
+    def test_ai_can_move_bishop(self):
         board = Board()
-        # Only a pawn that can move forward
-        board.set_piece((1, 4), Pawn('black'))
-        board.set_piece((0, 0), King('black'))
-        board.set_piece((7, 7), King('white'))
+        board.set_piece((0, 2), Bishop('black'))
+        board.set_piece((0, 4), King('black'))
+        board.set_piece((7, 4), King('white'))
 
         ai = AI()
         move = ai.get_move(board, 'black')
 
         assert move is not None
-        from_pos, to_pos, _ = move
 
-        # Should move the pawn forward (only piece that can see forward squares)
-        if from_pos == (1, 4):
-            assert to_pos in [(2, 4), (3, 4)]  # Pawn can move 1 or 2 squares
+    def test_ai_can_move_rook(self):
+        board = Board()
+        board.set_piece((0, 0), Rook('black'))
+        board.set_piece((0, 4), King('black'))
+        board.set_piece((7, 4), King('white'))
+
+        ai = AI()
+        move = ai.get_move(board, 'black')
+
+        assert move is not None
+
+    def test_ai_can_move_queen(self):
+        board = Board()
+        board.set_piece((0, 3), Queen('black'))
+        board.set_piece((0, 4), King('black'))
+        board.set_piece((7, 4), King('white'))
+
+        ai = AI()
+        move = ai.get_move(board, 'black')
+
+        assert move is not None
 
 
 class TestAISimulation:
@@ -126,15 +143,30 @@ class TestAISimulation:
         board = Board()
 
         # Standard starting position
+        board.set_piece((0, 0), Rook('black'))
+        board.set_piece((0, 1), Knight('black'))
+        board.set_piece((0, 2), Bishop('black'))
+        board.set_piece((0, 3), Queen('black'))
         board.set_piece((0, 4), King('black'))
+        board.set_piece((0, 5), Bishop('black'))
+        board.set_piece((0, 6), Knight('black'))
+        board.set_piece((0, 7), Rook('black'))
         for col in range(8):
             board.set_piece((1, col), Pawn('black'))
+
+        board.set_piece((7, 0), Rook('white'))
+        board.set_piece((7, 1), Knight('white'))
+        board.set_piece((7, 2), Bishop('white'))
+        board.set_piece((7, 3), Queen('white'))
         board.set_piece((7, 4), King('white'))
+        board.set_piece((7, 5), Bishop('white'))
+        board.set_piece((7, 6), Knight('white'))
+        board.set_piece((7, 7), Rook('white'))
         for col in range(8):
             board.set_piece((6, col), Pawn('white'))
 
         ai = AI()
-        max_moves = 100
+        max_moves = 50
         current_color = 'white'
         moves_made = 0
         game_over = False

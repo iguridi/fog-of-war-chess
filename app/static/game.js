@@ -226,21 +226,42 @@ class ChessGame {
 
         if (!piece || piece === 'fog') return [];
 
-        if (piece.type === 'king') {
-            return this.calculateKingMoves(row, col);
-        } else if (piece.type === 'pawn') {
-            return this.calculatePawnMoves(row, col, piece.color);
+        switch (piece.type) {
+            case 'king':
+                return this.calculateKingMoves(row, col);
+            case 'queen':
+                return this.calculateQueenMoves(row, col);
+            case 'rook':
+                return this.calculateRookMoves(row, col);
+            case 'bishop':
+                return this.calculateBishopMoves(row, col);
+            case 'knight':
+                return this.calculateKnightMoves(row, col);
+            case 'pawn':
+                return this.calculatePawnMoves(row, col, piece.color);
+            default:
+                return [];
         }
-
-        return [];
     }
 
     calculateKingMoves(row, col) {
+        const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+        return this.calculateStepMoves(row, col, directions);
+    }
+
+    calculateKnightMoves(row, col) {
+        const offsets = [
+            [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+            [1, -2], [1, 2], [2, -1], [2, 1]
+        ];
+        return this.calculateStepMoves(row, col, offsets);
+    }
+
+    calculateStepMoves(row, col, offsets) {
         const moves = [];
         const board = this.gameState.board;
-        const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
 
-        for (const [dr, dc] of directions) {
+        for (const [dr, dc] of offsets) {
             const r = row + dr;
             const c = col + dc;
 
@@ -250,6 +271,51 @@ class ChessGame {
             if (target === 'fog') continue;
             if (target === null || target.color !== 'white') {
                 moves.push([r, c]);
+            }
+        }
+
+        return moves;
+    }
+
+    calculateQueenMoves(row, col) {
+        const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+        return this.calculateSlidingMoves(row, col, directions);
+    }
+
+    calculateRookMoves(row, col) {
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        return this.calculateSlidingMoves(row, col, directions);
+    }
+
+    calculateBishopMoves(row, col) {
+        const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+        return this.calculateSlidingMoves(row, col, directions);
+    }
+
+    calculateSlidingMoves(row, col, directions) {
+        const moves = [];
+        const board = this.gameState.board;
+
+        for (const [dr, dc] of directions) {
+            let r = row + dr;
+            let c = col + dc;
+
+            while (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize) {
+                const target = board[r][c];
+
+                if (target === 'fog') break; // Can't see beyond fog
+
+                if (target === null) {
+                    moves.push([r, c]);
+                } else if (target.color !== 'white') {
+                    moves.push([r, c]); // Can capture
+                    break;
+                } else {
+                    break; // Blocked by own piece
+                }
+
+                r += dr;
+                c += dc;
             }
         }
 

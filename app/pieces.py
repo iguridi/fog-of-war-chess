@@ -127,3 +127,253 @@ class Pawn:
         new_pawn = Pawn(self.color)
         new_pawn.has_moved = self.has_moved
         return new_pawn
+
+
+class Knight:
+    """Knight piece - moves in L-shape, can jump over pieces."""
+
+    def __init__(self, color: str):
+        self.color = color
+
+    @property
+    def piece_type(self) -> str:
+        return 'knight'
+
+    @property
+    def symbol(self) -> str:
+        return '\u2658' if self.color == 'white' else '\u265e'
+
+    def get_valid_moves(self, pos: Tuple[int, int], board) -> List[Tuple[int, int]]:
+        """Get all valid moves for the knight."""
+        moves = []
+        row, col = pos
+        # L-shape moves: 2 squares in one direction, 1 in perpendicular
+        offsets = [
+            (-2, -1), (-2, 1), (-1, -2), (-1, 2),
+            (1, -2), (1, 2), (2, -1), (2, 1)
+        ]
+
+        for dr, dc in offsets:
+            new_pos = (row + dr, col + dc)
+            if board.is_valid_pos(new_pos):
+                target = board.get_piece(new_pos)
+                if target is None or target.color != self.color:
+                    moves.append(new_pos)
+
+        return moves
+
+    def get_visible_squares(self, pos: Tuple[int, int], board) -> Set[Tuple[int, int]]:
+        """Get all squares visible to the knight (all L-shape destinations)."""
+        visible = set()
+        row, col = pos
+        offsets = [
+            (-2, -1), (-2, 1), (-1, -2), (-1, 2),
+            (1, -2), (1, 2), (2, -1), (2, 1)
+        ]
+
+        for dr, dc in offsets:
+            new_pos = (row + dr, col + dc)
+            if board.is_valid_pos(new_pos):
+                visible.add(new_pos)
+
+        return visible
+
+    def copy(self) -> 'Knight':
+        """Create a copy of this piece."""
+        return Knight(self.color)
+
+
+class Bishop:
+    """Bishop piece - moves diagonally any number of squares."""
+
+    def __init__(self, color: str):
+        self.color = color
+
+    @property
+    def piece_type(self) -> str:
+        return 'bishop'
+
+    @property
+    def symbol(self) -> str:
+        return '\u2657' if self.color == 'white' else '\u265d'
+
+    def get_valid_moves(self, pos: Tuple[int, int], board) -> List[Tuple[int, int]]:
+        """Get all valid moves for the bishop."""
+        return self._get_sliding_moves(pos, board, [(-1, -1), (-1, 1), (1, -1), (1, 1)])
+
+    def get_visible_squares(self, pos: Tuple[int, int], board) -> Set[Tuple[int, int]]:
+        """Get all squares visible to the bishop (diagonal rays until blocked)."""
+        return self._get_sliding_visibility(pos, board, [(-1, -1), (-1, 1), (1, -1), (1, 1)])
+
+    def _get_sliding_moves(self, pos: Tuple[int, int], board, directions) -> List[Tuple[int, int]]:
+        """Get moves along sliding directions (stops at pieces)."""
+        moves = []
+        row, col = pos
+
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while board.is_valid_pos((r, c)):
+                target = board.get_piece((r, c))
+                if target is None:
+                    moves.append((r, c))
+                elif target.color != self.color:
+                    moves.append((r, c))
+                    break  # Can capture but not go further
+                else:
+                    break  # Blocked by own piece
+                r, c = r + dr, c + dc
+
+        return moves
+
+    def _get_sliding_visibility(self, pos: Tuple[int, int], board, directions) -> Set[Tuple[int, int]]:
+        """Get visible squares along sliding directions (stops at first piece)."""
+        visible = set()
+        row, col = pos
+
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while board.is_valid_pos((r, c)):
+                visible.add((r, c))
+                if board.get_piece((r, c)) is not None:
+                    break  # Can see the piece but not beyond
+                r, c = r + dr, c + dc
+
+        return visible
+
+    def copy(self) -> 'Bishop':
+        """Create a copy of this piece."""
+        return Bishop(self.color)
+
+
+class Rook:
+    """Rook piece - moves horizontally or vertically any number of squares."""
+
+    def __init__(self, color: str):
+        self.color = color
+
+    @property
+    def piece_type(self) -> str:
+        return 'rook'
+
+    @property
+    def symbol(self) -> str:
+        return '\u2656' if self.color == 'white' else '\u265c'
+
+    def get_valid_moves(self, pos: Tuple[int, int], board) -> List[Tuple[int, int]]:
+        """Get all valid moves for the rook."""
+        return self._get_sliding_moves(pos, board, [(-1, 0), (1, 0), (0, -1), (0, 1)])
+
+    def get_visible_squares(self, pos: Tuple[int, int], board) -> Set[Tuple[int, int]]:
+        """Get all squares visible to the rook (straight rays until blocked)."""
+        return self._get_sliding_visibility(pos, board, [(-1, 0), (1, 0), (0, -1), (0, 1)])
+
+    def _get_sliding_moves(self, pos: Tuple[int, int], board, directions) -> List[Tuple[int, int]]:
+        """Get moves along sliding directions (stops at pieces)."""
+        moves = []
+        row, col = pos
+
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while board.is_valid_pos((r, c)):
+                target = board.get_piece((r, c))
+                if target is None:
+                    moves.append((r, c))
+                elif target.color != self.color:
+                    moves.append((r, c))
+                    break
+                else:
+                    break
+                r, c = r + dr, c + dc
+
+        return moves
+
+    def _get_sliding_visibility(self, pos: Tuple[int, int], board, directions) -> Set[Tuple[int, int]]:
+        """Get visible squares along sliding directions (stops at first piece)."""
+        visible = set()
+        row, col = pos
+
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while board.is_valid_pos((r, c)):
+                visible.add((r, c))
+                if board.get_piece((r, c)) is not None:
+                    break
+                r, c = r + dr, c + dc
+
+        return visible
+
+    def copy(self) -> 'Rook':
+        """Create a copy of this piece."""
+        return Rook(self.color)
+
+
+class Queen:
+    """Queen piece - moves like bishop + rook combined."""
+
+    def __init__(self, color: str):
+        self.color = color
+
+    @property
+    def piece_type(self) -> str:
+        return 'queen'
+
+    @property
+    def symbol(self) -> str:
+        return '\u2655' if self.color == 'white' else '\u265b'
+
+    def get_valid_moves(self, pos: Tuple[int, int], board) -> List[Tuple[int, int]]:
+        """Get all valid moves for the queen."""
+        directions = [
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),          (0, 1),
+            (1, -1), (1, 0), (1, 1)
+        ]
+        return self._get_sliding_moves(pos, board, directions)
+
+    def get_visible_squares(self, pos: Tuple[int, int], board) -> Set[Tuple[int, int]]:
+        """Get all squares visible to the queen (all rays until blocked)."""
+        directions = [
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),          (0, 1),
+            (1, -1), (1, 0), (1, 1)
+        ]
+        return self._get_sliding_visibility(pos, board, directions)
+
+    def _get_sliding_moves(self, pos: Tuple[int, int], board, directions) -> List[Tuple[int, int]]:
+        """Get moves along sliding directions (stops at pieces)."""
+        moves = []
+        row, col = pos
+
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while board.is_valid_pos((r, c)):
+                target = board.get_piece((r, c))
+                if target is None:
+                    moves.append((r, c))
+                elif target.color != self.color:
+                    moves.append((r, c))
+                    break
+                else:
+                    break
+                r, c = r + dr, c + dc
+
+        return moves
+
+    def _get_sliding_visibility(self, pos: Tuple[int, int], board, directions) -> Set[Tuple[int, int]]:
+        """Get visible squares along sliding directions (stops at first piece)."""
+        visible = set()
+        row, col = pos
+
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while board.is_valid_pos((r, c)):
+                visible.add((r, c))
+                if board.get_piece((r, c)) is not None:
+                    break
+                r, c = r + dr, c + dc
+
+        return visible
+
+    def copy(self) -> 'Queen':
+        """Create a copy of this piece."""
+        return Queen(self.color)
