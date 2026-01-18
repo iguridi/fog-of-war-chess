@@ -14,6 +14,7 @@ class Game:
         self.game_over = False
         self.winner = None
         self.last_move = None
+        self.en_passant_target = None  # Square that can be captured en passant
         self.ai = AI()
         self._setup_initial_position()
 
@@ -87,7 +88,11 @@ class Game:
         if not piece or piece.color != 'white':
             return {'success': False, 'error': 'No valid piece at that position'}
 
-        valid_moves = piece.get_valid_moves(from_pos, self.board)
+        # Get valid moves (pass en_passant_target for pawns)
+        if piece.piece_type == 'pawn':
+            valid_moves = piece.get_valid_moves(from_pos, self.board, self.en_passant_target)
+        else:
+            valid_moves = piece.get_valid_moves(from_pos, self.board)
         if to_pos not in valid_moves:
             return {'success': False, 'error': 'Invalid move'}
 
@@ -121,14 +126,61 @@ class Game:
         """Execute a move on the board."""
         piece = self.board.get_piece(from_pos)
         captured = self.board.get_piece(to_pos)
+        from_row, from_col = from_pos
+        to_row, to_col = to_pos
 
         # Check for king capture
         if captured and captured.piece_type == 'king':
             self.game_over = True
             self.winner = piece.color
 
+        # Handle en passant capture
+        if piece.piece_type == 'pawn' and to_pos == self.en_passant_target:
+            # Remove the captured pawn (it's on the row we came from)
+            captured_pawn_pos = (from_row, to_col)
+            captured_pawn = self.board.get_piece(captured_pawn_pos)
+            if captured_pawn and captured_pawn.piece_type == 'king':
+                self.game_over = True
+                self.winner = piece.color
+            self.board.set_piece(captured_pawn_pos, None)
+
+        # Reset en passant target
+        self.en_passant_target = None
+
+        # Set en passant target if pawn double-pushed
+        if piece.piece_type == 'pawn' and abs(to_row - from_row) == 2:
+            # En passant target is the square the pawn skipped over
+            direction = -1 if piece.color == 'white' else 1
+            self.en_passant_target = (from_row + direction, from_col)
+
+        # Handle castling
+        if piece.piece_type == 'king' and abs(to_col - from_col) == 2:
+            back_row = 7 if piece.color == 'white' else 0
+            if to_col == 6:  # Kingside castling
+                rook = self.board.get_piece((back_row, 7))
+                self.board.set_piece((back_row, 5), rook)
+                self.board.set_piece((back_row, 7), None)
+                if hasattr(rook, 'has_moved'):
+                    rook.has_moved = True
+            elif to_col == 2:  # Queenside castling
+                rook = self.board.get_piece((back_row, 0))
+                self.board.set_piece((back_row, 3), rook)
+                self.board.set_piece((back_row, 0), None)
+                if hasattr(rook, 'has_moved'):
+                    rook.has_moved = True
+
         # Move the piece
         self.board.set_piece(to_pos, piece)
         self.board.set_piece(from_pos, None)
+
+        # Mark piece as moved (for castling and pawn first move)
+        if hasattr(piece, 'has_moved'):
+            piece.has_moved = True
+
+        # Handle pawn promotion (auto-queen)
+        if piece.piece_type == 'pawn':
+            promotion_row = 0 if piece.color == 'white' else 7
+            if to_row == promotion_row:
+                self.board.set_piece(to_pos, Queen(piece.color))
 
         self.last_move = {'from': from_pos, 'to': to_pos}

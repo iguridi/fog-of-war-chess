@@ -7,6 +7,7 @@ class King:
 
     def __init__(self, color: str):
         self.color = color
+        self.has_moved = False
 
     @property
     def piece_type(self) -> str:
@@ -29,6 +30,27 @@ class King:
                 if target is None or target.color != self.color:
                     moves.append(new_pos)
 
+        # Castling
+        if not self.has_moved:
+            back_row = 7 if self.color == 'white' else 0
+            if row == back_row and col == 4:
+                # Kingside castling (O-O)
+                kingside_rook = board.get_piece((back_row, 7))
+                if (kingside_rook and kingside_rook.piece_type == 'rook' and
+                    not kingside_rook.has_moved and
+                    board.is_empty((back_row, 5)) and
+                    board.is_empty((back_row, 6))):
+                    moves.append((back_row, 6))
+
+                # Queenside castling (O-O-O)
+                queenside_rook = board.get_piece((back_row, 0))
+                if (queenside_rook and queenside_rook.piece_type == 'rook' and
+                    not queenside_rook.has_moved and
+                    board.is_empty((back_row, 1)) and
+                    board.is_empty((back_row, 2)) and
+                    board.is_empty((back_row, 3))):
+                    moves.append((back_row, 2))
+
         return moves
 
     def get_visible_squares(self, pos: Tuple[int, int], board) -> Set[Tuple[int, int]]:
@@ -46,7 +68,9 @@ class King:
 
     def copy(self) -> 'King':
         """Create a copy of this piece."""
-        return King(self.color)
+        new_king = King(self.color)
+        new_king.has_moved = self.has_moved
+        return new_king
 
 
 class Pawn:
@@ -64,7 +88,7 @@ class Pawn:
     def symbol(self) -> str:
         return '\u2659' if self.color == 'white' else '\u265f'
 
-    def get_valid_moves(self, pos: Tuple[int, int], board) -> List[Tuple[int, int]]:
+    def get_valid_moves(self, pos: Tuple[int, int], board, en_passant_target=None) -> List[Tuple[int, int]]:
         """Get all valid moves for the pawn."""
         moves = []
         row, col = pos
@@ -91,6 +115,9 @@ class Pawn:
             if 0 <= new_row < board.SIZE and 0 <= new_col < board.SIZE:
                 target = board.get_piece((new_row, new_col))
                 if target and target.color != self.color:
+                    moves.append((new_row, new_col))
+                # En passant capture
+                elif en_passant_target and (new_row, new_col) == en_passant_target:
                     moves.append((new_row, new_col))
 
         return moves
@@ -250,6 +277,7 @@ class Rook:
 
     def __init__(self, color: str):
         self.color = color
+        self.has_moved = False
 
     @property
     def piece_type(self) -> str:
@@ -304,7 +332,9 @@ class Rook:
 
     def copy(self) -> 'Rook':
         """Create a copy of this piece."""
-        return Rook(self.color)
+        new_rook = Rook(self.color)
+        new_rook.has_moved = self.has_moved
+        return new_rook
 
 
 class Queen:
