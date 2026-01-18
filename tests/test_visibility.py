@@ -1,190 +1,205 @@
-"""Unit tests for fog-of-war visibility calculations (Step 1: 3x3 King-only)."""
+"""Unit tests for fog-of-war visibility calculations."""
 import pytest
 from app.board import Board
-from app.pieces import King
+from app.pieces import King, Pawn
 
 
 class TestBoardVisibility:
-    def test_own_piece_square_visible(self):
+    def test_own_piece_squares_visible(self):
         board = Board()
         king = King('white')
-        board.set_piece((2, 0), king)
+        pawn = Pawn('white')
+        board.set_piece((7, 4), king)
+        board.set_piece((6, 4), pawn)
 
         visible = board.get_visible_squares('white')
 
-        assert (2, 0) in visible  # King's position
+        assert (7, 4) in visible  # King's position
+        assert (6, 4) in visible  # Pawn's position
 
     def test_king_makes_adjacent_visible(self):
         board = Board()
         king = King('white')
-        board.set_piece((1, 1), king)  # Center of 3x3
+        board.set_piece((4, 4), king)
 
         visible = board.get_visible_squares('white')
 
         # King can see all adjacent squares
-        expected = [
-            (0, 0), (0, 1), (0, 2),
-            (1, 0),         (1, 2),
-            (2, 0), (2, 1), (2, 2),
-        ]
-        for pos in expected:
-            assert pos in visible
+        for dr in [-1, 0, 1]:
+            for dc in [-1, 0, 1]:
+                if dr == 0 and dc == 0:
+                    continue
+                assert (4 + dr, 4 + dc) in visible
 
-    def test_king_corner_visibility_limited(self):
+    def test_pawn_visibility_forward_and_diagonals(self):
         board = Board()
-        king = King('white')
-        board.set_piece((0, 0), king)  # Top-left corner
+        pawn = Pawn('white')
+        board.set_piece((6, 4), pawn)
 
         visible = board.get_visible_squares('white')
 
-        # Should see only valid adjacent squares
-        assert (0, 0) in visible  # Own position
-        assert (0, 1) in visible
-        assert (1, 0) in visible
-        assert (1, 1) in visible
-        # Should NOT see off-board positions (handled by is_valid_pos)
-        assert len(visible) == 4  # corner + 3 adjacent
+        assert (5, 4) in visible  # One forward
+        assert (4, 4) in visible  # Two forward (from start)
+        assert (5, 3) in visible  # Attack diagonal left
+        assert (5, 5) in visible  # Attack diagonal right
 
-    def test_king_edge_visibility(self):
+    def test_multiple_pieces_combine_visibility(self):
         board = Board()
         king = King('white')
-        board.set_piece((1, 0), king)  # Left edge, middle row
+        pawn = Pawn('white')
+        board.set_piece((7, 4), king)
+        board.set_piece((6, 0), pawn)
 
         visible = board.get_visible_squares('white')
 
-        expected = [
-            (0, 0), (0, 1),
-            (1, 0), (1, 1),
-            (2, 0), (2, 1),
-        ]
-        assert len(visible) == 6
-        for pos in expected:
-            assert pos in visible
+        # King's visibility
+        assert (6, 4) in visible
+        assert (7, 5) in visible
+
+        # Pawn's visibility
+        assert (5, 0) in visible  # Forward
+        assert (5, 1) in visible  # Diagonal
 
     def test_enemy_pieces_not_counted_for_own_visibility(self):
         board = Board()
-        white_king = King('white')
-        black_king = King('black')
-        board.set_piece((2, 0), white_king)
-        board.set_piece((0, 2), black_king)
+        king = King('white')
+        enemy_king = King('black')
+        board.set_piece((7, 4), king)
+        board.set_piece((0, 0), enemy_king)
 
         visible = board.get_visible_squares('white')
 
         # White can only see what white pieces can reach
-        # Black king at (0, 2) is not adjacent to white king at (2, 0)
-        assert (0, 2) not in visible
-
-    def test_multiple_pieces_combine_visibility(self):
-        """If we had multiple white pieces, their visibility would combine."""
-        board = Board()
-        king1 = King('white')
-        king2 = King('white')  # Hypothetical second king for testing
-        board.set_piece((0, 0), king1)
-        board.set_piece((2, 2), king2)
-
-        visible = board.get_visible_squares('white')
-
-        # Both kings' positions visible
-        assert (0, 0) in visible
-        assert (2, 2) in visible
-        # Adjacent to first king
-        assert (0, 1) in visible
-        assert (1, 0) in visible
-        # Adjacent to second king
-        assert (1, 2) in visible
-        assert (2, 1) in visible
+        assert (0, 0) not in visible  # Enemy king not in white's range
 
 
 class TestInitialPositionVisibility:
     def test_initial_white_visibility(self):
-        """Test visibility from standard 3x3 starting position."""
+        """Test visibility from standard starting position."""
         board = Board()
 
-        # Standard starting position
-        board.set_piece((2, 0), King('white'))  # Bottom-left
-        board.set_piece((0, 2), King('black'))  # Top-right
+        # Set up white pieces
+        board.set_piece((7, 4), King('white'))
+        for col in range(8):
+            board.set_piece((6, col), Pawn('white'))
 
         visible = board.get_visible_squares('white')
 
-        # White king's position visible
-        assert (2, 0) in visible
+        # Own pieces visible
+        for col in range(8):
+            assert (6, col) in visible  # Pawns
+        assert (7, 4) in visible  # King
 
-        # Adjacent squares visible
-        assert (1, 0) in visible
-        assert (1, 1) in visible
-        assert (2, 1) in visible
+        # Pawn forward squares visible
+        for col in range(8):
+            assert (5, col) in visible  # One forward
+            assert (4, col) in visible  # Two forward
 
-        # Black king's corner not visible (too far)
-        assert (0, 2) not in visible
+        # Row 3 and above should mostly be fog
+        assert (3, 3) not in visible  # Middle of board in fog
+        assert (0, 4) not in visible  # Enemy king's position in fog
 
     def test_initial_black_visibility(self):
         """Test visibility from black's perspective."""
         board = Board()
 
-        board.set_piece((2, 0), King('white'))
-        board.set_piece((0, 2), King('black'))
+        # Set up black pieces
+        board.set_piece((0, 4), King('black'))
+        for col in range(8):
+            board.set_piece((1, col), Pawn('black'))
 
         visible = board.get_visible_squares('black')
 
-        # Black king's position visible
-        assert (0, 2) in visible
+        # Own pieces visible
+        for col in range(8):
+            assert (1, col) in visible  # Pawns
+        assert (0, 4) in visible  # King
 
-        # Adjacent squares visible
-        assert (0, 1) in visible
-        assert (1, 1) in visible
-        assert (1, 2) in visible
-
-        # White king's corner not visible
-        assert (2, 0) not in visible
-
-    def test_fog_covers_opposite_corner(self):
-        """Verify that the opposite corner is in fog at start."""
-        board = Board()
-
-        board.set_piece((2, 0), King('white'))
-        board.set_piece((0, 2), King('black'))
-
-        white_visible = board.get_visible_squares('white')
-        black_visible = board.get_visible_squares('black')
-
-        # Each side cannot see the other's starting corner
-        assert (0, 2) not in white_visible
-        assert (2, 0) not in black_visible
+        # Pawn forward squares visible
+        for col in range(8):
+            assert (2, col) in visible  # One forward
+            assert (3, col) in visible  # Two forward
 
 
 class TestVisibilityDuringGame:
-    def test_visibility_changes_after_move(self):
-        """Test that visibility updates when king moves."""
+    def test_visibility_changes_after_pawn_move(self):
+        """Test that visibility updates when pawn advances."""
         board = Board()
-        king = King('white')
-        board.set_piece((2, 0), king)
+        pawn = Pawn('white')
+        board.set_piece((6, 4), pawn)
 
         initial_visible = board.get_visible_squares('white')
-        assert (0, 0) not in initial_visible  # Top-left corner not visible
+        assert (4, 4) in initial_visible  # Two squares forward from start
 
-        # Move king to center
-        board.set_piece((2, 0), None)
-        board.set_piece((1, 1), king)
+        # Move pawn forward
+        board.set_piece((6, 4), None)
+        board.set_piece((5, 4), pawn)
 
         new_visible = board.get_visible_squares('white')
-        # Now can see all squares from center
-        assert (0, 0) in new_visible
-        assert (0, 2) in new_visible
-        assert (2, 0) in new_visible
-        assert (2, 2) in new_visible
+        # Now only sees one square forward (no longer on starting row)
+        assert (4, 4) in new_visible
+        assert (3, 4) not in new_visible  # Can't see two forward anymore
 
-    def test_kings_can_see_each_other_when_adjacent(self):
-        """When kings are adjacent, they can see each other."""
+    def test_pawn_diagonal_visibility_reveals_enemy(self):
+        """Pawn diagonal attack squares reveal enemies."""
         board = Board()
-        white_king = King('white')
-        black_king = King('black')
+        white_pawn = Pawn('white')
+        black_pawn = Pawn('black')
+        board.set_piece((5, 4), white_pawn)
+        board.set_piece((4, 5), black_pawn)
 
-        board.set_piece((1, 0), white_king)
-        board.set_piece((1, 1), black_king)
+        visible = board.get_visible_squares('white')
+
+        # White pawn's diagonal attack square is visible
+        assert (4, 5) in visible
+
+
+class TestCombinedVisibility:
+    def test_king_and_pawns_combine(self):
+        """Test that king and pawns combine visibility."""
+        board = Board()
+        king = King('white')
+        pawn = Pawn('white')
+
+        # King in corner, pawn in center
+        board.set_piece((7, 0), king)
+        board.set_piece((6, 4), pawn)
+
+        visible = board.get_visible_squares('white')
+
+        # King's adjacent squares
+        assert (6, 0) in visible
+        assert (6, 1) in visible
+        assert (7, 1) in visible
+
+        # Pawn's forward and diagonal squares
+        assert (5, 4) in visible
+        assert (4, 4) in visible
+        assert (5, 3) in visible
+        assert (5, 5) in visible
+
+    def test_full_starting_position_visibility(self):
+        """Test visibility for a complete starting position."""
+        board = Board()
+
+        # White pieces
+        board.set_piece((7, 4), King('white'))
+        for col in range(8):
+            board.set_piece((6, col), Pawn('white'))
+
+        # Black pieces
+        board.set_piece((0, 4), King('black'))
+        for col in range(8):
+            board.set_piece((1, col), Pawn('black'))
 
         white_visible = board.get_visible_squares('white')
         black_visible = board.get_visible_squares('black')
 
-        # They can see each other
-        assert (1, 1) in white_visible  # White sees black
-        assert (1, 0) in black_visible  # Black sees white
+        # Each side sees their own pieces and forward squares
+        # but not the enemy's back rank
+        assert (0, 4) not in white_visible  # Black king hidden
+        assert (7, 4) not in black_visible  # White king hidden
+
+        # Middle of board (row 4) is visible to both via pawn forward moves
+        assert (4, 0) in white_visible
+        assert (3, 0) in black_visible

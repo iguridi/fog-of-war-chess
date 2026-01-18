@@ -1,11 +1,11 @@
-"""Core game logic for 3x3 Fog-of-War game."""
+"""Core game logic for Fog-of-War chess game."""
 from app.board import Board
-from app.pieces import King
+from app.pieces import King, Pawn
 from app.ai import AI
 
 
 class Game:
-    """Manages the 3x3 fog-of-war game state."""
+    """Manages the fog-of-war chess game state."""
 
     def __init__(self):
         """Initialize a new game."""
@@ -18,9 +18,16 @@ class Game:
         self._setup_initial_position()
 
     def _setup_initial_position(self):
-        """Set up the starting position: white king bottom-left, black king top-right."""
-        self.board.set_piece((2, 0), King('white'))  # Bottom-left
-        self.board.set_piece((0, 2), King('black'))  # Top-right
+        """Set up the starting position: kings on back ranks, pawns on rows 2 & 7."""
+        # White pieces (bottom)
+        self.board.set_piece((7, 4), King('white'))  # King on e1
+        for col in range(8):
+            self.board.set_piece((6, col), Pawn('white'))  # Pawns on row 2
+
+        # Black pieces (top)
+        self.board.set_piece((0, 4), King('black'))  # King on e8
+        for col in range(8):
+            self.board.set_piece((1, col), Pawn('black'))  # Pawns on row 7
 
     def get_visible_state(self):
         """Get the game state with fog-of-war applied for white player."""

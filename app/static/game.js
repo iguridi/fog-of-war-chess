@@ -1,5 +1,5 @@
 /**
- * Fog of War Chess - 3x3 Edition
+ * Fog of War Chess
  */
 
 class ChessGame {
@@ -10,7 +10,7 @@ class ChessGame {
         this.gameOverModal = document.getElementById('game-over-modal');
         this.gameOverMessage = document.getElementById('game-over-message');
 
-        this.boardSize = 3;
+        this.boardSize = 8;
         this.selectedSquare = null;
         this.validMoves = [];
         this.gameState = null;
@@ -25,6 +25,8 @@ class ChessGame {
 
     createBoard() {
         this.boardEl.innerHTML = '';
+        this.boardEl.style.setProperty('--grid-size', this.boardSize);
+
         for (let row = 0; row < this.boardSize; row++) {
             for (let col = 0; col < this.boardSize; col++) {
                 const square = document.createElement('div');
@@ -38,6 +40,25 @@ class ChessGame {
                 this.boardEl.appendChild(square);
             }
         }
+
+        this.createLabels();
+    }
+
+    createLabels() {
+        const files = 'abcdefgh'.slice(0, this.boardSize).split('');
+        const ranks = Array.from({ length: this.boardSize }, (_, i) => this.boardSize - i);
+
+        // Top and bottom labels (files: a-h)
+        ['top-labels', 'bottom-labels'].forEach(id => {
+            const container = document.getElementById(id);
+            container.innerHTML = files.map(f => `<span>${f}</span>`).join('');
+        });
+
+        // Left and right labels (ranks: 8-1)
+        ['left-labels', 'right-labels'].forEach(id => {
+            const container = document.getElementById(id);
+            container.innerHTML = ranks.map(r => `<span>${r}</span>`).join('');
+        });
     }
 
     setupEventListeners() {
@@ -50,7 +71,7 @@ class ChessGame {
         try {
             const response = await fetch('/api/state');
             this.gameState = await response.json();
-            this.boardSize = this.gameState.boardSize || 3;
+            this.boardSize = this.gameState.boardSize || 8;
             this.createBoard();
             this.render();
         } catch (error) {
@@ -121,7 +142,7 @@ class ChessGame {
         if (this.gameState.lastMove) {
             const from = this.posToNotation(this.gameState.lastMove.from);
             const to = this.posToNotation(this.gameState.lastMove.to);
-            this.lastMoveEl.textContent = `Last move: ${from} \u2192 ${to}`;
+            this.lastMoveEl.textContent = `Last move: ${from} → ${to}`;
         } else {
             this.lastMoveEl.textContent = '';
         }
@@ -153,8 +174,8 @@ class ChessGame {
     }
 
     posToNotation([row, col]) {
-        const file = String.fromCharCode(97 + col); // a, b, c
-        const rank = this.boardSize - row; // 3, 2, 1
+        const file = String.fromCharCode(97 + col); // a-h
+        const rank = this.boardSize - row; // 8-1
         return `${file}${rank}`;
     }
 
@@ -200,6 +221,21 @@ class ChessGame {
     }
 
     calculateValidMoves(row, col) {
+        const board = this.gameState.board;
+        const piece = board[row][col];
+
+        if (!piece || piece === 'fog') return [];
+
+        if (piece.type === 'king') {
+            return this.calculateKingMoves(row, col);
+        } else if (piece.type === 'pawn') {
+            return this.calculatePawnMoves(row, col, piece.color);
+        }
+
+        return [];
+    }
+
+    calculateKingMoves(row, col) {
         const moves = [];
         const board = this.gameState.board;
         const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
@@ -214,6 +250,46 @@ class ChessGame {
             if (target === 'fog') continue;
             if (target === null || target.color !== 'white') {
                 moves.push([r, c]);
+            }
+        }
+
+        return moves;
+    }
+
+    calculatePawnMoves(row, col, color) {
+        const moves = [];
+        const board = this.gameState.board;
+        const direction = color === 'white' ? -1 : 1;
+        const startRow = color === 'white' ? 6 : 1;
+
+        // Move forward one square
+        const oneForward = row + direction;
+        if (oneForward >= 0 && oneForward < this.boardSize) {
+            const target = board[oneForward][col];
+            if (target !== 'fog' && target === null) {
+                moves.push([oneForward, col]);
+
+                // Move forward two squares from starting position
+                if (row === startRow) {
+                    const twoForward = row + (2 * direction);
+                    if (twoForward >= 0 && twoForward < this.boardSize) {
+                        const target2 = board[twoForward][col];
+                        if (target2 !== 'fog' && target2 === null) {
+                            moves.push([twoForward, col]);
+                        }
+                    }
+                }
+            }
+
+            // Capture diagonally
+            for (const dc of [-1, 1]) {
+                const newCol = col + dc;
+                if (newCol >= 0 && newCol < this.boardSize) {
+                    const target = board[oneForward][newCol];
+                    if (target !== 'fog' && target !== null && target.color !== color) {
+                        moves.push([oneForward, newCol]);
+                    }
+                }
             }
         }
 
@@ -259,9 +335,11 @@ class ChessGame {
         try {
             const response = await fetch('/api/new-game', { method: 'POST' });
             this.gameState = await response.json();
+            this.boardSize = this.gameState.boardSize || 8;
             this.selectedSquare = null;
             this.validMoves = [];
             this.gameOverModal.classList.add('hidden');
+            this.createBoard();
             this.render();
         } catch (error) {
             console.error('Failed to start new game:', error);

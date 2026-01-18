@@ -1,14 +1,14 @@
-"""Board representation for 3x3 fog-of-war game."""
+"""Board representation for 8x8 fog-of-war chess game."""
 from typing import Optional, Set, Tuple
 
 
 class Board:
-    """Represents a 3x3 board for the minimal fog-of-war game."""
+    """Represents an 8x8 board for the fog-of-war chess game."""
 
-    SIZE = 3
+    SIZE = 8
 
     def __init__(self):
-        """Initialize an empty 3x3 board."""
+        """Initialize an empty 8x8 board."""
         self.grid = [[None for _ in range(self.SIZE)] for _ in range(self.SIZE)]
 
     def get_piece(self, pos: Tuple[int, int]):
